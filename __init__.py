@@ -39,7 +39,6 @@ import bpy
 import bpy.utils.previews
 from bpy.app.handlers import persistent
 #from . import addon_updater_ops
-from bpy.utils.toolsystem import ToolDef
 from bpy.props import *
 import rna_keymap_ui
 
@@ -919,84 +918,57 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         #addon_updater_ops.update_settings_ui(self, context)
 
 
-@ToolDef.from_fn
-def toolbar_build():
-    icons_dir = os.path.join(os.path.dirname(__file__), "icons")
+class SprytileBuildTool(bpy.types.WorkSpaceTool):
+    bl_space_type = 'VIEW_3D'
+    bl_context_mode = 'EDIT_MESH'
 
-    return dict(
-        idname="sprytile.tool_build",
-        label="Sprytile Build",
-        description=(
-            "Make new tiles"
-        ),
-        icon=os.path.join(icons_dir, "sprytile.build_tool"),
-        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['MAKE_FACE'],
-        widget="VIEW3D_GGT_sprytile_gui",
-        cursor="KNIFE"
+    bl_idname = "sprytile.tool_build"
+    bl_label = "Sprytile Build"
+    bl_description = "Make new tiles"
+    bl_icon = os.path.join(os.path.dirname(__file__), "icons", "sprytile.build_tool")
+    bl_widget = "VIEW3D_GGT_sprytile_gui"
+    bl_keymap = (
+        ("sprytile.modal_tool", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
     )
 
+class SprytilePaintTool(bpy.types.WorkSpaceTool):
+    bl_space_type = 'VIEW_3D'
+    bl_context_mode = 'EDIT_MESH'
 
-@ToolDef.from_fn
-def toolbar_paint():
-    icons_dir = os.path.join(os.path.dirname(__file__), "icons")
-
-    return dict(
-        idname="sprytile.tool_paint",
-        label="Sprytile Paint",
-        description=(
-            "Paint existing tiles/faces"
-        ),
-        icon=os.path.join(icons_dir, "sprytile.paint_tool"),
-        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['PAINT'],
-        widget="VIEW3D_GGT_sprytile_gui",
-        cursor="PAINT_BRUSH"
+    bl_idname = "sprytile.tool_paint"
+    bl_label = "Sprytile Paint"
+    bl_description = "Paint existing tiles/faces"
+    bl_icon = os.path.join(os.path.dirname(__file__), "icons", "sprytile.paint_tool")
+    bl_widget = "VIEW3D_GGT_sprytile_gui"
+    bl_keymap = (
+        ("sprytile.modal_tool", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
     )
 
+class SprytileFillTool(bpy.types.WorkSpaceTool):
+    bl_space_type = 'VIEW_3D'
+    bl_context_mode = 'EDIT_MESH'
 
-@ToolDef.from_fn
-def toolbar_fill():
+    bl_idname = "sprytile.tool_fill"
+    bl_label = "Sprytile Fill"
+    bl_description = "Fill existing tiles/faces"
+    bl_icon = os.path.join(os.path.dirname(__file__), "icons", "sprytile.fill_tool")
+    bl_widget = "VIEW3D_GGT_sprytile_gui"
+    bl_keymap = (
+        ("sprytile.modal_tool", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
+    )
+
     def draw_settings(context, layout, tool):
         pass
 
-    icons_dir = os.path.join(os.path.dirname(__file__), "icons")
-
-    return dict(
-        idname="sprytile.tool_fill",
-        label="Sprytile Fill",
-        description=(
-            "Fill existing tiles/faces"
-        ),
-        icon=os.path.join(icons_dir, "sprytile.fill_tool"),
-        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['FILL'],
-        widget="VIEW3D_GGT_sprytile_gui",
-        cursor="SCROLL_XY"
-    )
-
-
-def get_tool_list(space_type, context_mode):
-    from bl_ui.space_toolsystem_common import ToolSelectPanelHelper
-    cls = ToolSelectPanelHelper._tool_class_from_space_type(space_type)
-    return cls._tools[context_mode]
-
-
 def register_tools():
-    tools = get_tool_list('VIEW_3D', 'EDIT_MESH')
-
-    for index, tool in enumerate(tools, 1):
-        if isinstance(tool, ToolDef) and tool.label == "Transform":
-            break
-
-    tools[:index] += None, toolbar_build, toolbar_paint, toolbar_fill
-
+    bpy.utils.register_tool(SprytileBuildTool, after={"builtin.transform"}, separator=True, group=True)
+    bpy.utils.register_tool(SprytilePaintTool, after={SprytileBuildTool.bl_idname})
+    bpy.utils.register_tool(SprytileFillTool, after={SprytilePaintTool.bl_idname})
 
 def unregister_tools():
-    tools = get_tool_list('VIEW_3D', 'EDIT_MESH')
-
-    index = tools.index(toolbar_build) - 1 # None
-    tools.pop(index)
-    tools.remove(toolbar_build)
-    tools.remove(toolbar_paint)
-    tools.remove(toolbar_fill)
+    bpy.utils.unregister_tool(SprytileBuildTool)
+    bpy.utils.unregister_tool(SprytilePaintTool)
+    bpy.utils.unregister_tool(SprytileFillTool)
 
 
 def generate_tool_keymap(keyconfig, paint_mode):
@@ -1062,9 +1034,6 @@ submodules = (
     sprytile_panel,
     sprytile_utils,
     sprytile_uv,
-    tool_build,
-    tool_paint,
-    tool_fill,
 )
 
 @persistent
